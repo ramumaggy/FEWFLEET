@@ -1,0 +1,61 @@
+
+body {
+  height: 100vh;
+  background: url(images/login-bg.jpg) no-repeat center
+  center/cover;
+}
+
+.login_form {
+    width: 350px;
+    height: 386px;
+    background-color: rgb(0 0 0 / 28%);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 0 142px 0px #e56d35c7;
+    border-radius: 11px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 1rem;
+    color: #fff;
+    border: 11px solid #ffffff0f;
+    text-align: center;
+}
+.user_logo {
+    height: 100px;
+    width: 100px;
+    background-color: #C5565B;
+    border-radius: 50%;
+    position: relative;
+    top: -60px;
+    margin: auto;
+    display: inline-block;
+}
+.user_logo i {
+    font-size: 2.8rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.div-user_logo{
+   position: relative;
+   top: -30px; 
+}
+.form-control {
+    border: 0;
+    margin-bottom: 10px;
+    background-color: white;
+/*    border-bottom: 1px solid #ced4da;
+border-radius: 0;*/
+}
+.btn-login{
+   background-color: #e04249;
+   width: 100%;
+   margin-top: 10px;
+   padding: 7px 5px;
+   font-size: 20px;
+   color: white;
+   box-shadow: 0px 5px 13px rgb(214 0 9 / 58%);
+}
+.error-msg {display: none; color: red;}

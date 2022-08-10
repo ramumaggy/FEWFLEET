@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Devices</title>
+
+  <link rel="stylesheet" type="text/css" href="src/bootstrap-5.0.1-dist/css/bootstrap.min.css">
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  
+  
+  <script type="text/javascript" src="src/bootstrap-5.0.1-dist/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="src/bootstrap-5.0.1-dist/js/bootstrap.bundle.min.js"></script>
+
+  <link rel="stylesheet" type="text/css" href="src/fontawesome-free-5.15.3-web/css/all.min.css">
+
+  <link rel="stylesheet" type="text/css" href="src/style.css">
+  <!-- DataTables Link -->
+  <link rel="stylesheet" href="src/DataTables-1.10.24/css/dataTables.bootstrap4.min.css">
+  <script src="src/DataTables-1.10.24/js/jquery.dataTables.min.js"></script>
+  <script src="src/DataTables-1.10.24/js/dataTables.bootstrap4.min.js"></script>
+  <!-- E N D -->
+   
+  
+  <script>
+    let baseURL;
+    let activeDeviceCount=0;
+    const licenceCountRequestBody = '<Request><getCount></getCount></Request>';
+    
+    $(document).ready(function(){
+    $('.error-msg.activationfailure').hide();
+    $('.error-msg.sessionexpired').hide();
+    $('.error-msg.unknownError').hide();
+    $('.error-msg.deviceError').hide();
+    $('.error-msg.licenseError').hide();
+
+    let myDataTable= $("#dataTableTable").dataTable(
+    		{"columns": [null,null,null,{ className: "fw-bold text-center" },{ className: "text-center"}],
+    		 "oLanguage": {	"sSearch": "DeviceID Search:"},
+    		 "columnDefs": [{ "targets": [1,2,3,4], "searchable": false }]
+    		});
+    
+    $.ajax({url:"baseurl",type: "GET",success:(data)=>{baseURL=data;makeAjaxCalls(baseURL);},error:()=>{$('.error-msg.unknownError').show();} });
+    function makeAjaxCalls(baseURL) {
+        $.ajax({url:baseURL,type: "POST",data:licenceCountRequestBody,success: upDateLicenceCount,crossDomain:true,header:{'Access-Control-Allow-Origin': '*'},dataType:'text',contentType:'xml'});
+        $.ajax({url:baseURL,type: "GET",success: loadDataToTable,error : ()=>{$('.error-msg.deviceError').show();},crossDomain:true,header:{'Access-Control-Allow-Origin': '*'},dataType:'xml' });
+
+    }
+
+    $('#dataTableTable tbody').on('click', '.btn-active , .btn-inActive ',function(){let rowIndex = myDataTable.api().row( $(this).parents('tr') ).index();checkIfSessionValid(rowIndex)});
+
+    function loadDataToTable(response) {
+      let $table = $(response).find("DEVICE");
+      $table.each(function(index, device){
+             let $device = $(device);
+             let addData = [];
+                       
+            addData.push($device.children("deviceId").text().substring(1));
+            addData.push($device.children("teh_type").text());
+            addData.push($device.children("teh_name").text());
+            addData.push($device.children("status").text());
+            if($device.children("status").text()=='INACTIVE'){
+                addData.push('<button class="btn btn-active">Active</button>');
+            }else{
+               addData.push('<button class="btn btn-inActive">Inactive</button>');
+               activeDeviceCount++;
+               
+            }                                      
+            myDataTable.fnAddData(addData,false);                                      
+       });
+      $('#activeDeviceCount').text(activeDeviceCount);
+      myDataTable.api().draw();
+    }
+
+	function checkIfSessionValid(rowIndex){
+		
+		$.ajax({
+	        url :'validate',
+	        complete: function(response) {
+	            if(response.responseText =="Session is Valid") {
+	            	updateDeviceStatus(rowIndex);
+	               
+	            }  else {
+	                $('.error-msg.sessionexpired').show();
+	                 setTimeout(()=>{location.href="login.html";},2000)
+	                 
+	            }
+	        	}
+	    		});
+		
+		
+    }
+
+    function updateDeviceStatus(rowIndex) {
+         let data = myDataTable.api().row( rowIndex ).data();
+         let activationRequest=data[3]==="INACTIVE" ? "1":"0";
+         let body="deviceId="+data[0]+"&activationRequest="+ activationRequest;
+         
+         if(activationRequest == 0 || activeDeviceCount < parseInt($('#licenseCount').text()) )	{
+        	 $.post(baseURL+'?',body,(xml)=>{upDateDeviceStatusInUI(xml,rowIndex);},'xml',{crossDomain:true});
+ 		}
+ 		else{
+ 			$('.error-msg.licenseLimitError').show().fadeOut(3000);
+ 		}
+
+         
+      
+         function upDateDeviceStatusInUI(xml,rowIndex){
+            let $res=$(xml).find("RESPONSE");
+                         $res.each((index, res)=>{
+                                      let $response = $(res);
+                                      if($response.children("RETURNCODE").text()=='SUCCESS')
+                                      {
+                                        if(activationRequest==0){
+                                          data[3]="INACTIVE";
+                                          data[4]='<button class="btn btn-active">Active</button>';
+                                          --activeDeviceCount;
+                                          $('#activeDeviceCount').text(activeDeviceCount);
+                                          
+                                      }else{                           
+                                          data[3]="ACTIVE";
+                                          data[4]='<button class="btn btn-inActive">Inactive</button>';
+                                          activeDeviceCount++;
+                                          $('#activeDeviceCount').text(activeDeviceCount)
+                                        }
+                                      myDataTable.api().row( rowIndex ).data(data).draw(false);
+                                      }else if($response.children("RETURNCODE").text()=='DEVICE_NOT_REGISTERED'){
+                                    	  $('.error-msg.activationfailure').show().fadeOut(3000);
+                                      }     
+                                 });
+          }
+    }});
+
+   function upDateLicenceCount(data) {
+	  if(data.length < 6){
+      $('#licenseCount').text(data);
+	  }else {
+		  $('.error-msg.licenseError').show().fadeOut(3000);
+	  }
+   }
+
+  </script>
+
+
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <!-- <a class="navbar-brand" href="#">LOGO</a> -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+      </ul>
+	  <form method="post" action="logout">
+
+      <button  type="submit" class="d-flex div-user" >
+        <div class="pe-2">Administrator</div>
+        <div class=""><i class="fas fa-power-off"></i></div>
+      </button>
+	  </form>
+    </div>
+  </div>
+</nav>
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="shadow-lg p-3 my-5 bg-body rounded table-responsive p-2 c-brd-top">
+        <div class="text-end py-3">
+          <div class="mb-2"><b>Remote Client License Count </b> <span id="licenseCount" class="span-count"></span></div>
+          <div><b>Current Active Devices </b> <span id="activeDeviceCount" class="span-count"></span></div>
+        </div>
+        
+        <div class="error-msg unknownError">Something gone wrong.</div>
+        <div class="error-msg licenseLimitError">License limit reached.Unable to activate device</div>
+        <div class="error-msg licenseError">Error in loading license count.</div>
+        <div class="error-msg deviceError">Error in loading devices.Please reload page</div>
+        <div class="error-msg activationfailure">Device not registered</div>
+        <div class="error-msg sessionexpired">Session expired.Please login again</div>
+        <hr>
+        
+        <table id="dataTableTable" class="border table bg-white table-hover table-striped">
+          <thead>
+            <tr>
+              <th class="p-3">DeviceID</th>
+              <th class="p-3">Type</th>
+              <th class="p-3">Name</th>
+              <th class="p-3 text-center">Is Active</th>
+              <th class="p-3 text-center">Action</th>
+            </tr> 
+          </thead>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

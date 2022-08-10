@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Devices</title>
+
+  <link rel="stylesheet" type="text/css" href="src/bootstrap-5.0.1-dist/css/bootstrap.min.css">
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+  <script type="text/javascript" src="src/bootstrap-5.0.1-dist/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="src/bootstrap-5.0.1-dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.0/dist/js.cookie.min.js"></script>
+
+  <link rel="stylesheet" type="text/css" href="src/fontawesome-free-5.15.3-web/css/all.min.css">
+
+  <link rel="stylesheet" type="text/css" href="src/login.css">
+  
+  <script type="text/javascript">
+  $(document).ready(function(){
+	  $(".btn-login").click(function(){
+		  $('.error-msg.password').hide();
+          $('.error-msg.username').hide();
+	      $('.error-msg.incorrect-error').hide();
+		  $('.error-msg.session-error').hide();
+          $('.error-msg.unknown-error').hide();
+
+	      let username= $('#username').val();
+	      let password= $('#password').val();
+	      
+	      if(username.trim().length == 0) {
+	    	  $('.error-msg.username').show().fadeOut(5000);
+	      }
+	      else if(password.trim().length == 0){       
+	    	  $('.error-msg.password').show().fadeOut(5000);
+	      }
+	      else {
+		     let body=`username=${username}&password=${password}`;
+    		 $.post("login",body,"json")
+			   .done((data,status,jqXHR)=>{
+				location.href="index.html";
+				})
+				.fail((data,status,jqXHR)=>{
+					if(data.responseText == "Bad credentials\r\n") {
+						$('.error-msg.incorrect-error').show().fadeOut(5000);
+					}
+					else if(data.responseText == "Maximum sessions of 1 for this principal exceeded\r\n") {
+						$('.error-msg.session-error').show().fadeOut(5000);
+					} else {
+						$('.error-msg.unknown-error').show().fadeOut(5000);
+					}
+				  
+				})
+	      }
+
+	    });
+  })
+  
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+
+        <div class="login_form">
+          <div class="user_logo">
+            <i class='fas fa-user-lock'></i>
+          </div>
+          <!--<form method="post" action="login">-->
+          <div class="div-user_logo">
+            <h2 class="mb-4">Admin Login</h2>
+            <input class="form-control" type="text" placeholder="Username" id="username" name="username" />
+			<div class="error-msg username">Enter a valid username.</div>
+            <input class="form-control" type="password" placeholder="Password" id="password" name="password" />
+			<div class="error-msg password">Enter a valid password.</div>
+            <button type="submit" class="btn btn-login">Login</button>
+			<div class="error-msg incorrect-error">Incorrect username or password.</div>
+			<div class="error-msg session-error">Maximum sessions reached.<br>Close other sessions and try again</div>
+			<div class="error-msg unknown-error">Something went wrong, try after sometime.</div>
+          </div>
+       <!--   </form>-->
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
